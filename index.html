@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Transmissão de Vídeo Remoto</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+    <style>
+
+</head>
+<body>
+    <video id="remoteVideo" autoplay muted></video>
+
+    <script>
+        const constraints = { video: true, audio: true };
+        const socket = io('video.html'); // Endereço do servidor de sinalização
+
+        const startStream = async () => {
+            try {
+                const remoteStream = await navigator.mediaDevices.getUserMedia(constraints);
+                const remoteVideo = document.getElementById('remoteVideo');
+                remoteVideo.srcObject = remoteStream;
+
+                const pc = new RTCPeerConnection(); // Criação da conexão WebRTC
+
+                pc.addStream(remoteStream);
+
+                // Evento para enviar a oferta (SDP offer) para o outro dispositivo
+                pc.onnegotiationneeded = async () => {
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+
+                    socket.emit('offer', offer); // Envia a oferta para o servidor de sinalização
+                };
+
+                // Evento para receber a resposta (SDP answer) do outro dispositivo
+                socket.on('answer', async (answer) => {
+                    await pc.setRemoteDescription(new RTCSessionDescription(answer));
+                });
+
+                // Evento para adicionar o stream remoto
+                pc.ontrack = (event) => {
+                    remoteVideo.srcObject = event.streams[0];
+                };
+            } catch (error) {
+                console.error('Erro ao acessar a câmera: ', error);
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', startStream);
+    </script>
+</body>
+</html>
