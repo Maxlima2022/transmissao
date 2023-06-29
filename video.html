@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Página Local</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+</head>
+<body>
+    <video id="localVideo" autoplay></video>
+
+    <script>
+        const constraints = { video: true, audio: true };
+        let localStream;
+        let mediaRecorder;
+        let recordedBlobs = [];
+        const socket = io('video.html'); // Endereço do servidor de sinalização
+
+        const handleDataAvailable = (event) => {
+            if (event.data && event.data.size > 0) {
+                recordedBlobs.push(event.data);
+            }
+        };
+
+        const handleStop = () => {
+            const blob = new Blob(recordedBlobs, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'video.webm';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
